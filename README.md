@@ -43,11 +43,11 @@ To see BAdabouM's options, type:
 BAdabouM's output file consists of the following columns:
 
 1. Chromosome 1
-2. Position 1
-3. Orientation 1
+2. Position 1.1
+3. Position 1.2
 4. Chromosome 2
-5. Position 2
-6. Orientation 2
+5. Position 2.1
+6. Position 2.2
 7. Type of a SV
 8. Size of a SV
 
