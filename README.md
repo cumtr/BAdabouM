@@ -12,7 +12,7 @@ It uses paired-ends, split-reads and aberrant depth of coverage to call SVs.
 ### Instalating BAdabouM
 ------------------------
 
-The easiest way to get BAdabouM is tu build it from sources.
+The easiest way to get BAdabouM is to build it from sources.
 
 ```
 git clone https://github.com/cumtr/BAdabouM.git
