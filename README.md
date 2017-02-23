@@ -56,6 +56,6 @@ BAdabouM's output file consists of the following columns:
 -----------
 
 BAdabouM is distributed under CeCILL.
-see [LICENCE] (https://github.com/cumtr/BAdabouM/LICENCE) file for more informations.
+see [LICENCE] (https://github.com/cumtr/BAdabouM/blob/master/LICENCE) file for more informations.
 
 
