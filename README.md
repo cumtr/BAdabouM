@@ -28,7 +28,7 @@ make
 
 BAdabouM only needs a sorted and indexed bam file for every sample to run. 
 
-`./BAdabouM/src/BAdabouM Sample_1.sorted.bam`
+`./BAdabouM/src/BAdabouM Sample_1.sorted.bam > Sample_1.BAdabouM_out`
 
 
 To see BAdabouM's options, type:
