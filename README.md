@@ -1,6 +1,6 @@
 <p align="center">
   <a>
-    <img height="120" src="logo/BAdabouM_logo.png">
+    <img height="150" src="logo/BAdabouM_logo.png">
   </a>
 </p>
 
