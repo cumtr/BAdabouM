@@ -2020,14 +2020,14 @@ int main(int argc, char *argv[]) {
 							bam_index_destroy(idx);
 							samclose(sf);
 							
- 							fprintf(stderr, "ITX fetched ! chr : %d  3p : %d 5p : %d - %d %d %d %d \n",
+ 							/*fprintf(stderr, "ITX fetched ! chr : %d  3p : %d 5p : %d - %d %d %d %d \n",
  							                p_window->chr_end_ITX_3p,
  							                p_window->pos_end_ITX_5p,
  							                p_window->pos_end_ITX_3p,
  							                Fenetre->nbReads_ITX_5p,
  							                Fenetre->nbReads_ITX_3p,
  							                Fenetre->nbReads_soft_5p,
- 							                Fenetre->nbReads_soft_3p);
+ 							                Fenetre->nbReads_soft_3p);*/
  							
 							
 							if (Fenetre->nbReads_ITX_5p >= min_side && Fenetre->nbReads_ITX_3p >= min_side &&
