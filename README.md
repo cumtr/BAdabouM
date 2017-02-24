@@ -44,12 +44,12 @@ BAdabouM's output file consists of the following columns:
 
 1. Chromosome 1
 2. Position 1.1
-3. Position 1.2
+3. Position 2.1
 4. Chromosome 2
-5. Position 2.1
+5. Position 1.2
 6. Position 2.2
-7. Type of a SV
-8. Size of a SV
+7. Type of SV
+8. Size of SV
 
 
 ### Licence
