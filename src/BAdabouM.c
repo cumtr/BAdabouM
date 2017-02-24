@@ -1507,7 +1507,7 @@ int main(int argc, char *argv[]) {
     bam_destroy(b);
 
     coverage = coverage/(maxPosInit-minPosInit+1);
-    WARNING("Coverage estimated to %f\n", coverage);
+    //WARNING("Coverage estimated to %f\n", coverage);
     
     
     if (library_length==0) {
@@ -1519,7 +1519,7 @@ int main(int argc, char *argv[]) {
     
     if(min_side == 0){
     	min_side = (int) ceil(((coverage / read_length ) * library_length) / 8);
-    	WARNING("min_side estimated to %d\n", min_side);
+    	//WARNING("min_side estimated to %d\n", min_side);
     }
     
     if(min_softCliped == 0){
