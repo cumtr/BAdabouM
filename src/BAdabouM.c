@@ -1658,7 +1658,7 @@ int main(int argc, char *argv[]) {
                 /***********************/ 
                  
                  if (Col_Names == 0){
-                 	fprintf(stdout, "Chr_Start\tPos_Start_5p\tPos_Start_3p\tChr_End\tPos_End_5p\tPos_End_3p\tType\tSize\n");
+                 	fprintf(stdout, "#Chr_1\tPos_1_1\tPos_1_2\tChr_2\tPos_1_2\tPos_2_2\tType\tSize\n");
                  	Col_Names = 1;
                  }
                  
