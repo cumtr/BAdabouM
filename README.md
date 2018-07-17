@@ -8,6 +8,8 @@ BAdabouM is a free tool to detect Structural Varations (SVs) in Whole Genome reS
 BAdabouM is able to genotype insertions (INS), deletions (DEL), inversions (INV), copy number variations (CNVs) and inter and intra chromosomal rearrangements (CTX and ITX).
 BAdabouM uses paired-ends, split-reads and aberrant depth of coverage to call SVs.
 
+Version 2 | last update : 17/07/2018
+
 
 ### Instalating BAdabouM
 ------------------------
