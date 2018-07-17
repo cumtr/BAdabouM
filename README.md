@@ -53,6 +53,7 @@ BAdabouM's output file consists of the following columns:
 7. Type of SV
 8. Size of SV
 
+A script to convert BadabouM's output into vcf format is available in the script repertory.
 
 ### Licence
 -----------
