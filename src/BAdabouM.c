@@ -196,8 +196,8 @@ void FileExistOrIndex(const char* filename, const char* IndexFile) {
     //fprintf(stderr, "Index file exists\n");
   }
   else {
-  	WARNING("Index File doesnt exist,\n\t\t Indexing\n");
-  	//fprintf(stderr, "Index File doesnt exist, Indexing\n");
+  	//WARNING("Index File doesnt exist,\n\t\t Indexing\n");
+  	fprintf(stderr, "Index File doesnt exist, Indexing\n");
   	bam_index_build(filename);
   }
 }
@@ -236,6 +236,8 @@ typedef struct _composite_cp {
 	int Config_DEL;
 	int Start_Config_DEL;
 	float Start_meanInser_DEL;
+	int Nb_reads_Del;
+    int Nb_reads_Tot;
 	
 	int breakPoint_5p_Start_DEL;
 	int breakPoint_3p_Start_DEL;
@@ -335,6 +337,9 @@ PtrCompositeWindow create_compositeWindow(int readSize, int libraryInsertSize) {
 	p_window->Start_Config_DEL = 0;
     p_window->Start_meanInser_DEL = 0;
     
+    p_window->Nb_reads_Del = 0;
+    p_window->Nb_reads_Tot = 0;
+    
     p_window->breakPoint_5p_Start_DEL = 0;
 	p_window->breakPoint_3p_Start_DEL = 0;
     
@@ -433,6 +438,9 @@ void emptyThisWindow(PtrCompositeWindow p_w, void (*destroy) (PtrVoid p_v)) {
     p_w->Config_DEL = 0;
 	p_w->Start_Config_DEL = 0;
     p_w->Start_meanInser_DEL = 0;
+    
+    p_w->Nb_reads_Del = 0;
+    p_w->Nb_reads_Tot = 0;
     
     p_w->breakPoint_5p_Start_DEL = 0;
 	p_w->breakPoint_3p_Start_DEL = 0;
@@ -562,15 +570,15 @@ void CountSoftCliped(bam1_t *b, PtrCompositeWindow p_w, int toAdd){
 		int BreakPoint;
 		
 		int op_5p = cigar[0]&BAM_CIGAR_MASK;
-		if (op_5p == BAM_CSOFT_CLIP){
+		if (op_5p == BAM_CSOFT_CLIP || op_5p == BAM_CHARD_CLIP){
 			int l_5p = cigar[0]>>BAM_CIGAR_SHIFT;
-			if (l_5p > len/5){ 
-				p_w->nbSoftCliped_5p = p_w->nbSoftCliped_5p +toAdd;
+			if (l_5p > len/10){ 
+				p_w->nbSoftCliped_5p = p_w->nbSoftCliped_5p + toAdd;
 				BreakPoint = b->core.pos + 1;	// +1 necessary because alignament start at 0
-		 		if (p_w->BreakPoint_min > BreakPoint || p_w->BreakPoint_min < BreakPoint - 100){ 
+		 		if (p_w->BreakPoint_min > BreakPoint || p_w->BreakPoint_min < BreakPoint - len){ 
  					p_w->BreakPoint_min = BreakPoint;
  				}
- 				if (p_w->BreakPoint_max < BreakPoint || p_w->BreakPoint_max > BreakPoint + 100){
+ 				if (p_w->BreakPoint_max < BreakPoint || p_w->BreakPoint_max > BreakPoint + len){
  					p_w->BreakPoint_max = BreakPoint;
  				}
 			}
@@ -578,10 +586,11 @@ void CountSoftCliped(bam1_t *b, PtrCompositeWindow p_w, int toAdd){
 		
 		int nbCigar = b->core.n_cigar-1;
 		int op_3p = cigar[nbCigar] & BAM_CIGAR_MASK;
-		if (op_3p == BAM_CSOFT_CLIP){
+		if (op_3p == BAM_CSOFT_CLIP || op_3p == BAM_CHARD_CLIP){
 			int l_3p = cigar[nbCigar]>>BAM_CIGAR_SHIFT;
-			if (l_3p > len/5){
-				p_w->nbSoftCliped_3p = p_w->nbSoftCliped_3p +toAdd;
+			if (l_3p > len/10){
+				
+				p_w->nbSoftCliped_3p = p_w->nbSoftCliped_3p + toAdd;
 				int k;
 				for (k = 0, BreakPoint = b->core.pos + 1; k < b->core.n_cigar; ++k) {
 					int op = cigar[k]&BAM_CIGAR_MASK;
@@ -591,10 +600,10 @@ void CountSoftCliped(bam1_t *b, PtrCompositeWindow p_w, int toAdd){
 					}
 				}
 			
-	 		if (p_w->BreakPoint_min > BreakPoint || p_w->BreakPoint_min < BreakPoint - 100){ 
+	 		if (p_w->BreakPoint_min > BreakPoint || p_w->BreakPoint_min < BreakPoint - len){ 
 				p_w->BreakPoint_min = BreakPoint;
 			}
- 			if (p_w->BreakPoint_max < BreakPoint || p_w->BreakPoint_max > BreakPoint + 100){
+ 			if (p_w->BreakPoint_max < BreakPoint || p_w->BreakPoint_max > BreakPoint + len){
  				p_w->BreakPoint_max = BreakPoint;
  			}
 		}
@@ -735,10 +744,10 @@ static int fetch_func(const bam1_t *b, PtrFenConfirm data) {
 		if (l_5p > len/5){ 
 			data->nbReads_soft_5p = data->nbReads_soft_5p + 1;
 			BreakPoint = b->core.pos+1;	// +1 necessary because alignament start at 0
-	 		if (data->BreakPoint_5p > BreakPoint || data->BreakPoint_5p < BreakPoint - 100){ 
+	 		if (data->BreakPoint_5p > BreakPoint || data->BreakPoint_5p < BreakPoint - len){ 
 				data->BreakPoint_5p = BreakPoint;
 			}
-			if (data->BreakPoint_3p < BreakPoint || data->BreakPoint_3p > BreakPoint + 100){
+			if (data->BreakPoint_3p < BreakPoint || data->BreakPoint_3p > BreakPoint + len){
 				data->BreakPoint_3p = BreakPoint;
 			}
 		}
@@ -759,10 +768,10 @@ static int fetch_func(const bam1_t *b, PtrFenConfirm data) {
 					BreakPoint = BreakPoint + Mapped;
 				}
 			}
- 			if (data->BreakPoint_5p > BreakPoint || data->BreakPoint_5p < BreakPoint - 100){ 
+ 			if (data->BreakPoint_5p > BreakPoint || data->BreakPoint_5p < BreakPoint - len){ 
 				data->BreakPoint_5p = BreakPoint;
 			}
-			if (data->BreakPoint_3p < BreakPoint || data->BreakPoint_3p > BreakPoint + 100){
+			if (data->BreakPoint_3p < BreakPoint || data->BreakPoint_3p > BreakPoint + len){
 				data->BreakPoint_3p = BreakPoint;
 			}
 		}
@@ -791,10 +800,11 @@ void update_5p_DEL(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd) {
 		}
 		
 		else{
+		    //fprintf(stderr, "ecart : %d\n", (b->core.mpos-b->core.pos));
 			p_w->prev_DEL_pos = b->core.pos;
 			p_w->prev_DEL_chr = b->core.tid;
 			p_w->nbReads_DEL_5p = 1;
-			p_w->meanInsert_DEL_5p = (b->core.mpos-b->core.pos);
+		    p_w->meanInsert_DEL_5p = (b->core.mpos-b->core.pos);
 		}
 	}
 }
@@ -821,7 +831,7 @@ void update_nb5p_INV(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd){
 		if((b->core.pos < p_w->prev_INV_pos + maxdist) && (p_w->prev_INV_chr == b->core.tid)){ // if same INV
 		
 			p_w->nbReads_INV_5p = (p_w->nbReads_INV_5p) + toAdd;
-			p_w->meanDist_INV_5p = b->core.mpos;
+			p_w->meanDist_INV_5p = b->core.mpos  - b->core.pos;
 			
 		}
 		else{ // si nouvelle INV
@@ -829,7 +839,7 @@ void update_nb5p_INV(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd){
 			p_w->prev_INV_chr = b->core.tid;
 			p_w->nbReads_INV_5p = 1;
 
-			p_w->meanDist_INV_5p = b->core.mpos;
+			p_w->meanDist_INV_5p = b->core.mpos - b->core.pos;
 			
 			p_w->varianceDist_INV_5p = 0.0;
 			p_w->m2_INV_5p = 0.0;					
@@ -847,7 +857,7 @@ void update_nb3p_INV(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd){
 		if((b->core.pos < p_w->prev_INV_pos + maxdist) && (p_w->prev_INV_chr == b->core.tid)){ // same INV
 		
 			p_w->nbReads_INV_3p = (p_w->nbReads_INV_3p) + toAdd;
-			p_w->meanDist_INV_3p = b->core.mpos;
+			p_w->meanDist_INV_3p = b->core.mpos  - b->core.pos;
 			
 		}
 		else{  // si nouvelle INV
@@ -855,7 +865,7 @@ void update_nb3p_INV(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd){
 			p_w->prev_INV_chr = b->core.tid;
 			p_w->nbReads_INV_3p = 1;
 
-			p_w->meanDist_INV_3p = b->core.mpos;
+			p_w->meanDist_INV_3p = b->core.mpos  - b->core.pos;
 			
 			p_w->varianceDist_INV_3p = 0.0;
 			p_w->m2_INV_3p = 0.0;					
@@ -948,7 +958,7 @@ void update_nb5p_ITX(bam1_t *b, PtrCompositeWindow p_w, int maxdist, int toAdd){
 	  		p_w->pos_start_ITX_5p = b->core.pos;
 	  		p_w->chr_end_ITX_5p = b->core.mtid;
 	  		p_w->pos_end_ITX_5p = b->core.mpos;
-	  		
+	  			
 		}
 	}
 }
@@ -1071,25 +1081,6 @@ int shiftWindow(PtrCompositeWindow p_w, bam1_t * b, void (*destroy) (PtrVoid ele
         else {
             //DEBUGP("b is not on the same chromosome\n");
         }
-        /*
-        DEBUGP("MINIMUM SHIFT ARE (%d) 5P: %d(%s) middle: %d(%s) 3P: %d(%s) b: %d(%s)\n",min_decal, decal_window[0],
-                                                                                    ! isEmptyCirclePit(p_w->p_5P)?"OK":"NO",
-                                                                                    decal_window[1],
-                                                                                    !isEmptyCirclePit(p_w->p_middle)?"OK":"NO",
-                                                                                    decal_window[2],
-                                                                                    ! isEmptyCirclePit(p_w->p_3P)?"OK":"NO",
-                                                                                    decal_read,
-                                                                                    b!=NULL?((((bam1_t *) firstInWindow(p_w))->core.tid == b->core.tid)?"OK":"OCHR"):"NO");
-         */
-        /*
-         * we have to empty the window iff :
-         * - the read is not on the same chromosome AND
-         * - we can not shift the window
-         */
-         
-         /* TODO : check if isEmptyWindow(p_w) is necessary here as we are in the else part of the first test 'if (isEmptyWindow(p_w)) {' 
-                   check if b != NULL &&       is necessary as it's after '(b==NULL)'
-         */
          
         if (((b==NULL) || 
              isEmptyWindow(p_w) || 
@@ -1125,9 +1116,11 @@ int shiftWindow(PtrCompositeWindow p_w, bam1_t * b, void (*destroy) (PtrVoid ele
              * we have to shift the read before the window because the 3P window can become empty
              * after shifting
              */
+             
             int wasEmpty_3P = isEmptyCirclePit(p_w->p_3P);
 
             //DEBUGP("Testing shifting for read\n");
+            
             if (b!=NULL && ((bam1_t *) firstInWindow(p_w))->core.tid == b->core.tid && decal_read==min_decal) {
                 push(p_w->p_3P, (PtrVoid) b);
                 countDangling(b, p_w->matrixCount_3P, min_qual, ADD);
@@ -1159,6 +1152,7 @@ int shiftWindow(PtrCompositeWindow p_w, bam1_t * b, void (*destroy) (PtrVoid ele
 
                     destroy(b_inside);
                     DEBUGP("Destroy one read from 5P\n");
+                    
                 }
             }
             //DEBUGP("Testing shifting for middle\n");
@@ -1175,10 +1169,10 @@ int shiftWindow(PtrCompositeWindow p_w, bam1_t * b, void (*destroy) (PtrVoid ele
                     update_nb5p_CTX(b_inside, p_w, DistValue, ADD);
                     update_nb5p_ITX(b_inside, p_w, DistValue, ADD);
 
-
                     countDangling(b_inside, p_w->matrixCount_middle, min_qual, SUB);
                     push(p_w->p_5P, b_inside);
                     DEBUGP("Move one read from middle to 5P\n");
+                    
                 }
             }
             //DEBUGP("Testing shifting for 3P\n");
@@ -1208,7 +1202,7 @@ void printHelp() {
     PP "\n");
     PP "\tBAdabouM - Compiled on %s\n", __DATE__);
     PP "\n");
-    PP  "    Detects putative genomic Structural Varaitions from BAM files\n");
+    PP  "\tDetects genomic structural variations from BAM files for diploid individuals\n");
     PP "\n");
     PP "\tGeneral options :\n");
 	PP "\n");
@@ -1220,10 +1214,10 @@ void printHelp() {
     PP "       min mapping quality threshold\n");
     PP "  -l  INTEGER (Default: Estimated during init phase)\n");
     PP "       Mean library size\n");
+    PP "  -l  INTEGER (Default: Estimated during init phase / required if mean library size is not estimated during init phase)\n");
+    PP "       library standard deviation\n");
     PP "  -I  INTEGER (Default: 100000)\n");
     PP "       Number of read for initiation phase\n");
-    //PP "  -p  (Default: Off)\n");
-    //PP "       Print reads in window\n");
 	PP "\n");
 	PP "\n");
 	PP "\tSVs reporting options :\n");
@@ -1273,6 +1267,7 @@ int main(int argc, char *argv[]) {
     
     int read_length = 100;
     int library_length = 0;
+    float library_sd = 0.0;
     float coverage = 0.0;
     int maxPosInit = -1, minPosInit = -1;
     int firstChr = -1;
@@ -1322,7 +1317,7 @@ int main(int argc, char *argv[]) {
     char* fileName;
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "hpr:I:l:s:q:M:C:i:m:")) != -1)
+    while ((c = getopt (argc, argv, "hpr:I:l:d:s:q:M:C:i:m:")) != -1)
       switch (c)
         {
         case 'h':
@@ -1356,6 +1351,14 @@ int main(int argc, char *argv[]) {
                 WARNING("Invalid value for Library parameter, value will be computed\n");
             }
             break;
+            
+        case 'd':
+            wvalue = optarg;
+            library_sd = strtol(wvalue, (char**) &endptr, 10);
+            if (library_sd==0 || wvalue==endptr) {
+                WARNING("Invalid value for Deviation parameter, value will be computed\n");
+            }
+        break;
             
         case 's':
             wvalue = optarg;
@@ -1464,6 +1467,10 @@ int main(int argc, char *argv[]) {
       ERROR(3, "Could not open file.\n");
     }
 
+    if(library_length!=0 && library_sd==0) {
+      ERROR(3, "Library can not be infered when mean library size is fixed. please use -d option.\n");
+    }
+
     int* tabL = NULL;
     if (library_length==0) {
         tabL = (int*) malloc(sizeof(int)*first_pass);
@@ -1508,27 +1515,50 @@ int main(int argc, char *argv[]) {
 
     coverage = coverage/(maxPosInit-minPosInit+1);
     //WARNING("Coverage estimated to %f\n", coverage);
-    
+    fprintf(stderr, "Coverage estimated:\t\t\t\t %f\n", coverage);
     
     if (library_length==0) {
         qsort(tabL, first_pass, sizeof(int), (const void *) comp_int);
         library_length = tabL[(int) (i/2)]+read_length;
-        free(tabL);
+        //free(tabL);
         //WARNING("Library length estimated to %d\n", library_length);
+        fprintf(stderr, "Library length:\t\t\t\t\t %d\n", library_length);
+    }
+    
+    if (library_sd==0) {
+        float* tabSd = NULL;
+        tabSd = (float*) malloc(sizeof(int)*first_pass);
+        memset(tabSd, 0, sizeof(int)*first_pass);
+
+        int n = 0;    
+        for( n = 0; n < (first_pass); n++ ){ 
+            tabSd[n] = fabs(tabL[n] - (library_length));    
+        }
+        qsort(tabSd, first_pass, sizeof(int), (const void *) comp_int);
+        library_sd = tabSd[(int) (i/4)*3];
+        fprintf(stderr, "Library sd:\t\t\t\t\t %f\n" , library_sd/2);
     }
     
     if(min_side == 0){
-    	min_side = (int) ceil(((coverage / read_length ) * library_length) / 8);
+    	min_side = (int) floor(((coverage / read_length ) * library_length) / 16);
+    	if(min_side == 0){
+    	    min_side = 1;
+    	}
     	//WARNING("min_side estimated to %d\n", min_side);
+    	fprintf(stderr, "min required number of reads:\t\t\t %d\n", min_side);
     }
     
     if(min_softCliped == 0){
-    	min_softCliped = (int) ceil(((coverage / read_length) * read_length) / 8);
+    	min_softCliped = (int) floor(((coverage / read_length) * read_length) / 16);
     	//WARNING("min_softCliped estimated to %d\n", min_softCliped);
+    	if(min_softCliped == 0){
+    	    min_softCliped = 1;
+    	}
+    	fprintf(stderr, "min required number en soft clipped reads:\t %d\n", min_softCliped);
     }
     
     if (min_mean_DEL==0) {
-		min_mean_DEL = library_length * 1.5;  
+		min_mean_DEL = library_length + library_sd;  
     }
 
 	if (min_size_CNV==0) {
@@ -1536,7 +1566,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if (min_size_INV==0) {
-		min_size_INV = library_length * 1.5;
+		min_size_INV = library_length + library_sd;
 	}
     //WARNING("Normal number of reads : %f \n",(library_length*coverage/read_length));
     
@@ -1549,7 +1579,7 @@ int main(int argc, char *argv[]) {
     fp_in = samopen(fileName, "rb", 0);
     header = fp_in->header;
 
-    p_window = create_compositeWindow(read_length, library_length);
+    p_window = create_compositeWindow(read_length, library_length * 1.5);
     p_ht = createHashTable((void *) bam_destroy);
     p_htPrintF = createHashTable((void *) bam_destroy);
     p_htPrintR = createHashTable((void *) bam_destroy);
@@ -1596,10 +1626,7 @@ int main(int argc, char *argv[]) {
                  ( isEmptyWindow(p_window) || ((bam1_t *) lastInWindow(p_window))->core.tid==b->core.tid) &&
                  b->core.pos <= sizeWindow(p_window)
                 ) {
-           // on ajoute le read, c'est tout
-            DEBUGP("BEGINNING OF CHR\n");
             addWindowInit(p_window, b, min_qual, (library_length * 2));
-            DEBUGP("added INIT %p %s %d %d\n",b, bam1_qname(b), b->core.tid, b->core.pos);
         } 
         
         /***********************************************
@@ -1608,23 +1635,24 @@ int main(int argc, char *argv[]) {
          * sans ce read
          ***********************************************/
         
-        else if (  someData &&
+       else if (  someData &&
                    ( ! isEmptyWindow(p_window)) &&
                    ((bam1_t *) lastInWindow(p_window))->core.tid==b->core.tid &&
                    ((bam1_t *) lastInWindow(p_window))->core.pos==b->core.pos
                 ) {
-           /*
-            * on ajoute le read, c'est tout
-            * en plus c'est facile car ca ne change a la fenetre
-            * on peut le mettre direct en 3P
-            */
+           //
+            // on ajoute le read, c'est tout
+            // en plus c'est facile car ca ne change a la fenetre
+            // on peut le mettre direct en 3P
+            //
             DEBUGP("SAME POSITION AS LAST ONE\n");
             push(p_window->p_3P, b);
             countDangling(b, p_window->matrixCount_3P, min_qual, ADD);
             update_nb3p_INV(b ,p_window, (library_length * 2), ADD);
             update_nb3p_CTX(b ,p_window, (library_length * 2), ADD);
             update_nb3p_ITX(b ,p_window, (library_length * 2), ADD);
-
+            
+            
             update_3p_DEL(b, p_window, (library_length * 2), ADD);
             DEBUGP("added in 3P %p %s %d %d\n",b, bam1_qname(b), b->core.tid, b->core.pos);
         }
@@ -1658,7 +1686,7 @@ int main(int argc, char *argv[]) {
                 /***********************/ 
                  
                  if (Col_Names == 0){
-                 	fprintf(stdout, "#Chr_1\tPos_1_1\tPos_1_2\tChr_2\tPos_1_2\tPos_2_2\tType\tSize\n");
+                 	fprintf(stdout, "Chr_Start\tPos_Start_5p\tPos_Start_3p\tChr_End\tPos_End_5p\tPos_End_3p\tType\tSize\n");
                  	Col_Names = 1;
                  }
                  
@@ -1666,21 +1694,25 @@ int main(int argc, char *argv[]) {
                 /*                          SVs  DETECTION                          */ 
                 /********************************************************************/   
                                   
-                                       
+                //fprintf(stderr, "EVALUATION");     
+                                                 
                 /*****************/
                 /*      INS      */
                 /*****************/              
                  
                  
-                if (!isEmptyWindow(p_window) &&
+                if (!isEmptyWindow(p_window) && // Window is not empty
                 
-                   ((library_length*coverage/read_length) * 0.5 <= p_window->p_5P->nbElem) && ((library_length*coverage/read_length) * 2 >= p_window->p_5P->nbElem) &&
-                   ((library_length*coverage/read_length) * 0.5 <= p_window->p_3P->nbElem) && ((library_length*coverage/read_length) * 2 >= p_window->p_3P->nbElem) &&
+                   ((library_length*coverage/read_length) * 0.5 <= p_window->p_5P->nbElem) && // Coverage not too low
+                   ((library_length*coverage/read_length) * 2 >= p_window->p_5P->nbElem) && // Coverage not too high
+                   
+                   ((library_length*coverage/read_length) * 0.5 <= p_window->p_3P->nbElem) && // Coverage not too low
+                   ((library_length*coverage/read_length) * 2 >= p_window->p_3P->nbElem) && // Coverage not too high
                 
                     (p_window->matrixCount_5P[FORWARD+DANGLING] >= min_side &&
                     p_window->matrixCount_3P[REVERSE+DANGLING] >= min_side) ) {
                     
-					if ((((bam1_t *) first(p_window->p_5P))->core.pos > prev_out_INS ||
+/*					if ((((bam1_t *) first(p_window->p_5P))->core.pos > prev_out_INS ||
 					   (((bam1_t *) first(p_window->p_5P))->core.tid) > prev_chr_INS) &&
 					   p_window->nbSoftCliped_5p >= min_softCliped && p_window->nbSoftCliped_3p >= min_softCliped) {
 						fprintf(stdout,"%s\t%d\t%d\t%s\t%d\t%d\tINS\t%d\n",
@@ -1695,13 +1727,29 @@ int main(int argc, char *argv[]) {
 						prev_out_INS = ((bam1_t *) lastInWindow(p_window))->core.pos;                        
 						prev_chr_INS = ((bam1_t *) lastInWindow(p_window))->core.tid;
 					}
+*/                     
+                     
+                     // Add to INS a genotype information
+                     
+					if ((((bam1_t *) first(p_window->p_5P))->core.pos > prev_out_INS ||
+					   (((bam1_t *) first(p_window->p_5P))->core.tid) > prev_chr_INS) &&
+					   p_window->nbSoftCliped_5p >= min_softCliped && p_window->nbSoftCliped_3p >= min_softCliped) {
+						fprintf(stdout,"%s\t%d\t%d\t%s\t%d\t%d\tINS\t%d\n",
+								header->target_name[((bam1_t *)lastInWindow(p_window))->core.tid],
+								p_window->BreakPoint_min,
+								p_window->BreakPoint_max,
+								header->target_name[((bam1_t *)firstInWindow(p_window))->core.tid],
+								p_window->BreakPoint_min,
+								p_window->BreakPoint_max,
+								p_window->BreakPoint_max - p_window->BreakPoint_min);
+															
+						prev_out_INS = ((bam1_t *) lastInWindow(p_window))->core.pos;                        
+						prev_chr_INS = ((bam1_t *) lastInWindow(p_window))->core.tid;
+					}                     
+                     
                                         
 				if ( DEBUG )
                     printfDanglingBis(stderr, p_window->matrixCount_5P, p_window->matrixCount_middle, p_window->matrixCount_3P);
-
-                    /*
-                     * use bam1_t *bam_dup1(const bam1_t *src) to make copies of alignment
-                     */
 
 
                     if (printreadflag) {
@@ -1718,8 +1766,8 @@ int main(int argc, char *argv[]) {
                             }
 
                             if (HT_get(p_htPrint, bam1_qname(b2), 0)==NULL) {
-                                /* b2 n'est deja stocke dans la table de hash */
-                                /* il faut en faire une copie */
+                                // b2 n'est deja stocke dans la table de hash 
+                                // il faut en faire une copie 
                                 b1 = bam_init();
                                 bam_copy(b1, b2);
                                 HT_add(p_htPrint, bam1_qname(b1), (PtrVoid) b1);
@@ -1738,8 +1786,8 @@ int main(int argc, char *argv[]) {
                             }
 
                             if (HT_get(p_htPrint, bam1_qname(b2), 0)==NULL) {
-                                /* b2 n'est deja stocke dans la table de hash */
-                                /* il faut en faire une copie */
+                                // b2 n'est deja stocke dans la table de hash 
+                                // il faut en faire une copie
                                 b1 = bam_init();
                                 bam_copy(b1, b2);
                                 HT_add(p_htPrint, bam1_qname(b1), (PtrVoid) b1);
@@ -1747,7 +1795,7 @@ int main(int argc, char *argv[]) {
                 		}
                 	}
                 }
-                        
+                       
                       
                 /*****************/
                 /*      CNV      */
@@ -1757,11 +1805,10 @@ int main(int argc, char *argv[]) {
                 if (!isEmptyWindow(p_window) &&
                 	( p_window->p_3P->nbElem >= ((library_length * coverage / read_length) * 2.5)) &&
                     ( p_window->p_5P->nbElem >= (library_length*coverage/read_length) * 0.5) &&
-                    ( p_window->p_5P->nbElem <= (library_length*coverage/read_length) * 1.5) &&
+                    ( p_window->p_5P->nbElem <= (library_length*coverage/read_length) * 2 ) &&
                     is_in_CNV==0) {
                 
-					if ((p_window->nbSoftCliped_5p >= (min_softCliped)) ) { //&& (p_window->nbSoftCliped_3p >= (min_softCliped))
-												
+					if ((p_window->nbSoftCliped_5p >= (min_softCliped * 2)) ) {						
 						is_in_CNV = 1;
 						
 						chr_in_CNV = ((bam1_t *)lastInWindow(p_window))->core.tid;
@@ -1769,19 +1816,20 @@ int main(int argc, char *argv[]) {
 				
 						breakpoint_in_CNV_5p = p_window->BreakPoint_min;
 						breakpoint_in_CNV_3p = p_window->BreakPoint_max;
+
 					}          
                 }
+
 
                 if (is_in_CNV==1 &&
                    !isEmptyWindow(p_window) &&
                    (p_window->p_5P->nbElem >= ((library_length*coverage/read_length) * 2.5)) &&
-                   ((library_length*coverage/read_length) * 1.5 >= p_window->p_3P->nbElem) &&
-                   ((library_length*coverage/read_length) * 0.5 <= p_window->p_3P->nbElem) ) {
-                    
-                    if ((p_window->nbSoftCliped_3p)>=(min_softCliped) &&
-                       (p_window->BreakPoint_max - breakpoint_in_CNV_5p) > min_size_CNV &&
-                       (p_window->BreakPoint_max - p_window->BreakPoint_min) < (read_length/2)) {
-                       
+                   ((library_length*coverage/read_length) * 2 >= p_window->p_3P->nbElem) &&
+                   ((library_length*coverage/read_length) * 0.2 <= p_window->p_3P->nbElem) &&
+                   (p_window->nbSoftCliped_3p)>=(min_softCliped * 2)  &&
+                  (p_window->BreakPoint_max - breakpoint_in_CNV_5p) > min_size_CNV &&
+                  (p_window->BreakPoint_max - p_window->BreakPoint_min) < (read_length/2)) {
+                                           
                     	fprintf(stdout, "%s\t%d\t%d\t%s\t%d\t%d\tCNV\t%d\n",
                             header->target_name[((bam1_t *)firstInWindow(p_window))->core.tid],
                            	breakpoint_in_CNV_5p,
@@ -1794,49 +1842,56 @@ int main(int argc, char *argv[]) {
                     		is_in_CNV = 0;
                     	
                     }
-                 }
-                
+
+
                 if (is_in_CNV==1 &&
-                   (p_window->p_5P->nbElem <= (library_length*coverage/read_length)) &&
-                   (p_window->p_3P->nbElem <= (library_length*coverage/read_length))) {
+                   (p_window->p_5P->nbElem <= (library_length*coverage/read_length) * 1.5) &&
+                   (p_window->p_3P->nbElem <= (library_length*coverage/read_length) * 1.5 )) {
                                       
                 	is_in_CNV = 0;
                 }
+
 
                 
                 /*****************/
                 /*       DEL     */
                 /*****************/
                 
+                
 				if (!isEmptyWindow(p_window) &&
 					p_window->nbReads_DEL_5p >= min_side &&
-					p_window->meanInsert_DEL_5p > min_mean_DEL &&
-					((p_window->Start_Config_DEL + min_mean_DEL < ((bam1_t *)firstInWindow(p_window))->core.pos) ||
-					(p_window->Start_Config_DEL > ((bam1_t *)firstInWindow(p_window))->core.pos))) { // New DEL
-												
+					p_window->meanInsert_DEL_5p >= min_mean_DEL &&
+					((p_window->Start_Config_DEL + (min_mean_DEL * 2) < ((bam1_t *)firstInWindow(p_window))->core.pos)  ||
+					(p_window->Start_Config_DEL > ((bam1_t *)firstInWindow(p_window))->core.pos)) ) { // New DEL
+
+                        //fprintf(stderr, "OPEN DEL: %d | %g\n", ((bam1_t *)firstInWindow(p_window))->core.pos, p_window->meanInsert_DEL_5p);
+                        												
 						p_window->Config_DEL = 1;
 						p_window->Start_Config_DEL = ((bam1_t *)firstInWindow(p_window))->core.pos;
 						p_window->Start_meanInser_DEL = p_window->meanInsert_DEL_5p;
 						prev_chr_DEL = ((bam1_t *)firstInWindow(p_window))->core.tid;
 				
+				        p_window->Nb_reads_Del = p_window->nbReads_DEL_5p;
+                        p_window->Nb_reads_Tot = p_window->matrixCount_5P[FORWARD+OK];
 				}
-				
-				if (p_window->Config_DEL == 1 && p_window->Config_DEL != 2 &&	// DEL ouverte
+								
+				if (p_window->Config_DEL == 1 && // p_window->Config_DEL != 2 &&	// DEL ouverte
 					p_window->nbSoftCliped_3p >= min_softCliped &&	//Assez de reads softClipped
-					//(p_window->Start_Config_DEL + read_length) < b->core.pos && 	//rea
+					(p_window->Start_Config_DEL + read_length) < b->core.pos && 	//rea
 					(p_window->BreakPoint_min + (read_length/2)) > p_window->BreakPoint_max) {	// Same DEL : determining BreakPoint
+
+                        //fprintf(stderr, "OPEN DEL: Step 2\n");
 																
 						p_window->breakPoint_5p_Start_DEL = p_window->BreakPoint_min;
 						p_window->breakPoint_3p_Start_DEL = p_window->BreakPoint_max;
 						p_window->Config_DEL = 2;
-								
 				}
 				
 				if (p_window->Config_DEL == 2 &&	// DEL Open
 				   ((p_window->breakPoint_5p_Start_DEL + read_length) < b->core.pos) &&	// not the same BreakPoint
-					p_window->nbSoftCliped_5p >= min_softCliped &&						 // assez de reads 
-					(p_window->BreakPoint_max - p_window->breakPoint_5p_Start_DEL) < (int) (p_window->Start_meanInser_DEL + min_mean_DEL) && 	// Verif que la sortie est coherente
-					(p_window->BreakPoint_max - p_window->breakPoint_5p_Start_DEL) > (int) (p_window->Start_meanInser_DEL - min_mean_DEL) ){	// Verif que la sortie est coherente
+				    p_window->nbSoftCliped_5p >= min_softCliped &&						 // assez de reads 
+				   (p_window->BreakPoint_max - p_window->breakPoint_5p_Start_DEL) < (int) (p_window->Start_meanInser_DEL + min_mean_DEL) && 	// Verif que la sortie est coherente
+				   (p_window->BreakPoint_max - p_window->breakPoint_5p_Start_DEL) > (int) (p_window->Start_meanInser_DEL - min_mean_DEL)) {	// Verif que la sortie est coherente
 					   			   
  					   fprintf(stdout, "%s\t%d\t%d\t%s\t%d\t%d\tDEL\t%d\n",
  							header->target_name[((bam1_t *)firstInWindow(p_window))->core.tid],
@@ -1847,11 +1902,13 @@ int main(int argc, char *argv[]) {
  							p_window->BreakPoint_max,
  							p_window->BreakPoint_max - p_window->breakPoint_5p_Start_DEL);
  						p_window->Config_DEL = 0;
-				}				
+				}	
 
-				if ( (p_window->Config_DEL != 0) && 
+
+				if ((p_window->Config_DEL != 0) && 
 				   (p_window->Start_Config_DEL + (int) p_window->Start_meanInser_DEL + (p_window->Start_meanInser_DEL + (library_length * 2 + read_length))) <= b->core.pos) {
 					p_window->Config_DEL = 0;
+					//fprintf(stderr, "CLOSE DEL: %d \n", ((bam1_t *)firstInWindow(p_window))->core.pos);
 				}
 				
 				
@@ -1863,19 +1920,22 @@ int main(int argc, char *argv[]) {
 				if (!isEmptyWindow(p_window) &&	
 				   p_window->nbReads_INV_5p >= min_side &&	// enought reads
 				   p_window->nbReads_INV_3p >= min_side &&	// enought reads
-				   ((p_window->meanDist_INV_5p - p_window->meanDist_INV_3p) < (library_length * 2)) &&
-				   ((p_window->meanDist_INV_5p - p_window->meanDist_INV_3p) > - (library_length * 2))) {
+				   ((p_window->meanDist_INV_5p - p_window->meanDist_INV_3p) < (library_length * 1.5)) &&
+				   ((p_window->meanDist_INV_5p - p_window->meanDist_INV_3p) > - (library_length * 1.5))) {
 				   
 					if (p_window->prev_INV + min_size_INV < ((bam1_t *)firstInWindow(p_window))->core.pos) { // New INV
+					
 						p_window->Config_INV = 1;
 						p_window->Start_Config_INV = ((bam1_t *)firstInWindow(p_window))->core.pos;
 					}
 				}
 				
 				if ( ((p_window->nbSoftCliped_5p + p_window->nbSoftCliped_3p) >= min_softCliped) &&
-					(p_window->meanDist_INV_5p - (((bam1_t *)lastInWindow(p_window))->core.pos) > (library_length * 2) ) &&  // Taille min de l'inv !
+					(p_window->meanDist_INV_5p > min_size_INV) &&  // Taille min de l'inv !
 				    p_window->Config_INV == 1) {
 					
+					//fprintf(stdout, "ICI\n");
+										
 					samfile_t *sf;
 					sf = samopen(fileName, "rb", 0);
 				
@@ -1886,8 +1946,8 @@ int main(int argc, char *argv[]) {
 					Fenetre = create_FenConfirm();									
 					
 					bam_fetch(sf->x.bam, idx, ((bam1_t *)firstInWindow(p_window))->core.tid, 
-							 ((int) p_window->meanDist_INV_3p) - (read_length * 2), 
-							 ((int) p_window->meanDist_INV_3p) + (read_length * 2),
+							 (((bam1_t *)lastInWindow(p_window))->core.pos + (int) p_window->meanDist_INV_3p) - (read_length * 2), 
+							 (((bam1_t *)lastInWindow(p_window))->core.pos + (int) p_window->meanDist_INV_3p) + (read_length * 2),
 							 Fenetre,
 							 (bam_fetch_f) fetch_func);
 					
@@ -1929,22 +1989,23 @@ int main(int argc, char *argv[]) {
 				if(!isEmptyWindow(p_window) &&	
 				   p_window->nbReads_CTX_5p >= min_side && // enought reads
 				   p_window->nbReads_CTX_3p >= min_side && // enought reads
-				   ((p_window->pos_end_CTX_5p - p_window->pos_end_CTX_3p) < (library_length * 2)) && 	// destination windows close one from the other
-				   ((p_window->pos_end_CTX_5p - p_window->pos_end_CTX_3p) > 0) &&
-				   (p_window->chr_end_CTX_5p == p_window->chr_end_CTX_3p) /*&&			// destimation windows on same chr
-				   (p_window->chr_start_CTX_5p != p_window->chr_end_CTX_5p)*/) { 			// destination not on the chr than start
+				   //((p_window->pos_end_CTX_5p - p_window->pos_end_CTX_3p) < (library_length * 2)) && 	// destination windows close one from the other
+				   //((p_window->pos_end_CTX_5p - p_window->pos_end_CTX_3p) > 0) &&
+				   (p_window->chr_end_CTX_5p == p_window->chr_end_CTX_3p) &&			// destimation windows on same chr
+				   (p_window->chr_start_CTX_5p != p_window->chr_end_CTX_5p)) { 			// destination not on the chr than start
+				   
 					if (p_window->prev_CTX_pos + (library_length * 2) < ((bam1_t *)firstInWindow(p_window))->core.pos ||
 						p_window->prev_CTX_chr != ((bam1_t *)firstInWindow(p_window))->core.tid) {
-						
-						if (((p_window->nbSoftCliped_5p + p_window->nbSoftCliped_3p) >= min_softCliped * 1.5) ||
-						   (p_window->nbSoftCliped_5p  >= min_softCliped && p_window->nbSoftCliped_3p >= min_softCliped)) {
-						   						   
+
+						if ((p_window->nbSoftCliped_5p  >= min_softCliped && p_window->nbSoftCliped_3p >= min_softCliped)) {	   
+						   	
 							samfile_t *sf;
 							sf = samopen(fileName, "rb", 0);
 							
 							bam_index_t *idx;
 							idx = bam_index_load(fileName);
 							
+							/*
 							PtrFenConfirm Fenetre = NULL;
 							Fenetre = create_FenConfirm();
 							
@@ -1953,13 +2014,36 @@ int main(int argc, char *argv[]) {
 									  p_window->pos_end_CTX_5p + (read_length * 2) ,
 									  Fenetre,
 									  (bam_fetch_f) fetch_func);
-						
+						    */
+						    
+						    PtrFenConfirm Fenetre_Start_CTX = NULL;
+							PtrFenConfirm Fenetre_End_CTX = NULL;
+							Fenetre_Start_CTX = create_FenConfirm();
+							Fenetre_End_CTX = create_FenConfirm();
+							
+						    // Fetch start CTX			
+						    bam_fetch(sf->x.bam, idx, p_window->chr_end_CTX_3p, 
+									  p_window->pos_end_CTX_5p - library_length * 1, 
+									  p_window->pos_end_CTX_5p + library_length * 1,
+									  Fenetre_Start_CTX,
+									  (bam_fetch_f) fetch_func);
+						    
+						    // Fetch end CTX
+							bam_fetch(sf->x.bam, idx, p_window->chr_end_CTX_5p, 
+									  p_window->pos_end_CTX_3p - library_length * 1, 
+									  p_window->pos_end_CTX_3p + library_length * 1,
+									  Fenetre_End_CTX,
+									  (bam_fetch_f) fetch_func);
+						    
+						    
 							bam_index_destroy(idx);
 							samclose(sf);
 							
-							if (Fenetre->nbReads_CTX_5p >= min_side && Fenetre->nbReads_CTX_3p >= min_side &&
-							   (Fenetre->nbReads_soft_5p >= min_softCliped || Fenetre->nbReads_soft_3p >= min_softCliped) /*&&
-							   (Fenetre->pos_CTX_5p) <= (Fenetre->BreakPoint_5p) && (Fenetre->BreakPoint_5p) <= (Fenetre->pos_CTX_3p)*/){
+                            
+							if (Fenetre_Start_CTX->nbReads_CTX_5p >= min_side && Fenetre_End_CTX->nbReads_CTX_3p >= min_side &&
+							   (Fenetre_Start_CTX->nbReads_soft_5p >= min_softCliped && Fenetre_Start_CTX->nbReads_soft_3p >= min_softCliped) &&
+							   (Fenetre_End_CTX->nbReads_soft_5p >= min_softCliped && Fenetre_End_CTX->nbReads_soft_3p >= min_softCliped) &&
+							   ((int) Fenetre_End_CTX->BreakPoint_5p - (int) Fenetre_Start_CTX->BreakPoint_3p) > min_size_INV){
 								
 								if (p_last!= NULL) bam_destroy(p_last);
 								p_last = bam_init();
@@ -1970,12 +2054,15 @@ int main(int argc, char *argv[]) {
 									p_window->BreakPoint_min,
 									p_window->BreakPoint_max,
 									header->target_name[p_window->chr_end_CTX_5p],
-									Fenetre->BreakPoint_5p,
-									Fenetre->BreakPoint_3p);
+									Fenetre_Start_CTX->BreakPoint_3p,
+									Fenetre_End_CTX->BreakPoint_5p);
 							
-							}
+						}
 						
-						destroy_FenConfirm(Fenetre);
+						//destroy_FenConfirm(Fenetre);
+						
+						destroy_FenConfirm(Fenetre_Start_CTX);
+						destroy_FenConfirm(Fenetre_End_CTX);
 						
 						p_window->prev_CTX_pos = ((bam1_t *)firstInWindow(p_window))->core.pos;
 						p_window->prev_CTX_chr = ((bam1_t *)firstInWindow(p_window))->core.tid;	
@@ -1992,9 +2079,12 @@ int main(int argc, char *argv[]) {
 				if(!isEmptyWindow(p_window) &&	
 				   p_window->nbReads_ITX_5p >= min_side && // enought reads
 				   p_window->nbReads_ITX_3p >= min_side && // enought reads
-				   ((p_window->pos_end_ITX_5p - p_window->pos_end_ITX_3p) < (library_length * 2)) && 	// destination windows close one from the other
-				   ((p_window->pos_end_ITX_5p - p_window->pos_end_ITX_3p) > 0) &&
-				   (p_window->chr_end_ITX_5p == p_window->chr_end_ITX_3p)) { 			// destination not on the chr than start
+				   //((p_window->pos_end_ITX_5p - p_window->pos_end_ITX_3p) < (library_length * 2)) && 	// destination windows close one from the other
+				   (((p_window->pos_start_ITX_5p < p_window->pos_end_ITX_5p) && (p_window->pos_start_ITX_3p < p_window->pos_end_ITX_3p)) ||
+				   ((p_window->pos_start_ITX_5p > p_window->pos_end_ITX_5p) && (p_window->pos_start_ITX_3p > p_window->pos_end_ITX_3p))) &&
+				   (p_window->chr_end_ITX_5p == p_window->chr_end_ITX_3p)) { 			// destination on the chr than start
+				   
+				   //fprintf(stdout, "ICI\n");
 				   
 					if (p_window->prev_ITX_pos + (library_length * 2) < ((bam1_t *)firstInWindow(p_window))->core.pos ||
 						p_window->prev_ITX_chr != ((bam1_t *)firstInWindow(p_window))->core.tid) {
@@ -2008,28 +2098,48 @@ int main(int argc, char *argv[]) {
 							bam_index_t *idx;
 							idx = bam_index_load(fileName);
 							
-							PtrFenConfirm Fenetre = NULL;
-							Fenetre = create_FenConfirm();
+							PtrFenConfirm Fenetre_Start_ITX = NULL;
+							PtrFenConfirm Fenetre_End_ITX = NULL;
+							Fenetre_Start_ITX = create_FenConfirm();
+							Fenetre_End_ITX = create_FenConfirm();
 							
+							/*
+							fprintf(stdout, "ITX : %d - %d \t %d - %d\n", p_window->pos_end_ITX_5p - library_length * 3,
+							                                        p_window->pos_end_ITX_5p + 100,
+							                                        p_window->pos_end_ITX_3p - 100,
+							                                        p_window->pos_end_ITX_3p + library_length * 3);
+							*/
+							
+							// Fetch start ITX
 							bam_fetch(sf->x.bam, idx, p_window->chr_end_ITX_3p, 
-									  p_window->pos_end_ITX_3p - library_length * 2, 
-									  p_window->pos_end_ITX_5p + library_length * 2,
-									  Fenetre,
+									  p_window->pos_end_ITX_5p - library_length * 2, 
+									  p_window->pos_end_ITX_5p + 100,
+									  Fenetre_Start_ITX,
 									  (bam_fetch_f) fetch_func);
+						    
+						    // Fetch end ITX			
+						    bam_fetch(sf->x.bam, idx, p_window->chr_end_ITX_3p, 
+									  p_window->pos_end_ITX_3p - 100, 
+									  p_window->pos_end_ITX_3p + library_length * 2,
+									  Fenetre_End_ITX,
+									  (bam_fetch_f) fetch_func);
+						
+						
 						
 							bam_index_destroy(idx);
 							samclose(sf);
 							
- 							/*fprintf(stderr, "ITX fetched ! chr : %d  3p : %d 5p : %d - %d %d %d %d \n",
+							/*
+							fprintf(stderr, "ITX fetched ! chr : %d  3p : %d 5p : %d - %d %d %d %d \n",
  							                p_window->chr_end_ITX_3p,
  							                p_window->pos_end_ITX_5p,
  							                p_window->pos_end_ITX_3p,
  							                Fenetre->nbReads_ITX_5p,
  							                Fenetre->nbReads_ITX_3p,
  							                Fenetre->nbReads_soft_5p,
- 							                Fenetre->nbReads_soft_3p);*/
- 							
-							
+ 							                Fenetre->nbReads_soft_3p);
+
+
 							if (Fenetre->nbReads_ITX_5p >= min_side && Fenetre->nbReads_ITX_3p >= min_side &&
 							   (Fenetre->nbReads_soft_5p >= min_softCliped || Fenetre->nbReads_soft_3p >= min_softCliped) ){
 								
@@ -2046,8 +2156,31 @@ int main(int argc, char *argv[]) {
 									Fenetre->BreakPoint_3p);
 							
 							}
+
+                            */
+
+							if (Fenetre_Start_ITX->nbReads_ITX_3p >= min_side && Fenetre_End_ITX->nbReads_ITX_5p >= min_side &&
+							   (Fenetre_Start_ITX->nbReads_soft_5p >= min_softCliped && Fenetre_Start_ITX->nbReads_soft_3p >= min_softCliped) &&
+							   (Fenetre_End_ITX->nbReads_soft_5p >= min_softCliped && Fenetre_End_ITX->nbReads_soft_3p >= min_softCliped) &&
+							   ((int) Fenetre_End_ITX->BreakPoint_3p - (int) Fenetre_Start_ITX->BreakPoint_5p) > min_size_INV){
+								
+								if (p_last!= NULL) bam_destroy(p_last);
+								p_last = bam_init();
+								bam_copy(p_last, b);
+								
+								fprintf(stdout, "%s\t%d\t%d\t%s\t%d\t%d\tITX\t%d\n",
+									header->target_name[p_last->core.tid],
+									p_window->BreakPoint_min,
+									p_window->BreakPoint_max,
+									header->target_name[p_window->chr_end_ITX_5p],
+									Fenetre_Start_ITX->BreakPoint_5p,
+									Fenetre_End_ITX->BreakPoint_3p,
+									Fenetre_End_ITX->BreakPoint_3p - Fenetre_Start_ITX->BreakPoint_5p);
+							
+							}
 						
-						destroy_FenConfirm(Fenetre);
+						destroy_FenConfirm(Fenetre_Start_ITX);
+						destroy_FenConfirm(Fenetre_End_ITX);
 						
 						p_window->prev_ITX_pos = ((bam1_t *)firstInWindow(p_window))->core.pos;
 						p_window->prev_ITX_chr = ((bam1_t *)firstInWindow(p_window))->core.tid;	
