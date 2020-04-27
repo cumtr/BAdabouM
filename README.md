@@ -65,5 +65,6 @@ see [LICENCE] (https://github.com/cumtr/BAdabouM/blob/master/LICENCE) file for m
 -----------
 
 If you used this software and enjoyed it, please cite our preprint !
+
 Tristan Cumer, François Pompanon, Frédéric Boyer
 bioRxiv 2020.04.01.018127; doi: https://doi.org/10.1101/2020.04.01.018127
