@@ -61,4 +61,9 @@ A script to convert BadabouM's output into vcf format is available in the script
 BAdabouM is distributed under CeCILL.
 see [LICENCE] (https://github.com/cumtr/BAdabouM/blob/master/LICENCE) file for more informations.
 
+### How to cite
+-----------
 
+If you used this software and enjoyed it, please cite our preprint !
+Tristan Cumer, François Pompanon, Frédéric Boyer
+bioRxiv 2020.04.01.018127; doi: https://doi.org/10.1101/2020.04.01.018127
