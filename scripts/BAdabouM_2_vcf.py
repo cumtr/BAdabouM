@@ -4,6 +4,7 @@
 from optparse import OptionParser
 import datetime
 import os
+import math
 
 ## Import arguments ## 
 
@@ -69,17 +70,20 @@ for line in Input.readlines():
         
         CHROM=Line[0]
         
-        POS=(int(Line[1])+int(Line[2]))/2
+        POS=math.floor((int(Line[1])+int(Line[2]))/2)
 
         ID="."
-        ALT="N"
+        REF="A"
+        #ALT="N"
         QUAL="."
         FILTER="PASS"
 
         # INFO
         SVTYPE=Line[6]
-        END=(int(Line[4])+int(Line[5]))/2
+        END=math.floor((int(Line[4])+int(Line[5]))/2)
+        
         SVLEN=END-POS
+        
         CIPOS_1=int(Line[1])-POS
         CIPOS_2=int(Line[2])-POS
         CIEND_1=int(Line[4])-END
@@ -89,20 +93,29 @@ for line in Input.readlines():
         
         GENO="1/1"
         
-        
         Output.write(CHROM)
         Output.write("\t")
+        
         Output.write(str(POS))
         Output.write("\t")
+        
         Output.write(ID)
         Output.write("\t")
-        Output.write(ALT)
+        
+        Output.write(REF)
         Output.write("\t")
+        
+        Output.write("<")        
+        Output.write(SVTYPE)
+        Output.write(">\t")
+        
         Output.write(QUAL)
         Output.write("\t")
+        
         Output.write(FILTER)
         Output.write("\t")
-        Output.write("SVTYPE=")
+        
+        Output.write("IMPRECISE;SVTYPE=")
         Output.write(SVTYPE)
         Output.write(";END=")
         Output.write(str(END))
@@ -117,31 +130,9 @@ for line in Input.readlines():
         Output.write(",")
         Output.write(str(CIEND_2))
         Output.write("\t")
+        
         Output.write(FORMAT)
         Output.write("\t")
+        
         Output.write(GENO)
         Output.write('\n')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
