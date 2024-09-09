@@ -23,13 +23,15 @@ cd BAdabouM/
 
 make
 ```
-In case you face some issue with the compilation, you can try to independently install (or load depending on your enviroment) samtools and then run :
+In case you face some issue with the compilation, you can try to independently install (or load, depending on your enviroment) samtools and then run :
 
 ```
 cd src/
 
 make
 ```
+If the conpilation worked, an executable called `BAdabouM` should be created ib the `src` directory.
+
 
 
 ### Running BAdabouM
